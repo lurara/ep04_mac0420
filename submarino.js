@@ -25,6 +25,11 @@
 var gl;        // webgl2
 var gCanvas;   // canvas
 
+var ultimoT = Date.now(); // delta
+var incrementa = false;
+var decrementa = false;
+var eixo = -1;
+
 var gCena = new Cena();
 //var corFragmento = 
 //var corNevoa = vec4(1.0, 0.0, 0.0, 1.0);
@@ -35,6 +40,7 @@ function Camera() {
     this.init = function(pos, theta, vTrans) {
         this.pos = pos;
         this.theta = theta;
+        this.vTrans = vTrans;
         // atualiza a orientação
         let m = mat4();
         m = mult( rotateX( this.theta[0]), m);
@@ -48,7 +54,7 @@ function Camera() {
 };
 
 var gCamera = new Camera();
-gCamera.init(SUBS[0].pos, (SUBS[0].theta));
+gCamera.init(SUBS[0].pos, (SUBS[0].theta), 0);
 
 // guarda coisas do shader
 var gShader = {
@@ -85,6 +91,14 @@ function main()
     // shaders
     crieShaders();
 
+    // interface
+    crieInterface();
+
+    // inicializa cam
+    // gCamera.vz = normalize(subtract(gCamera.dir, gCamera.pos));
+    // gCamera.right = normalize(cross(gCamera.vz, gCamera.up));
+    // gCamera.vy = normalize(cross(gCamera.vx, gCamera.vz));
+
     // finalmente...
     render();
 };
@@ -94,14 +108,61 @@ function main()
 function crieInterface() {
     document.addEventListener('keydown', onKeyDownHandler);
 
-    gInt.bPasso = document.getElementById('Passo');
-    gInt.bPasso.onclick = callbackOnClickPasso;
+    // gInt.bPasso = document.getElementById('Passo');
+    // gInt.bPasso.onclick = callbackOnClickPasso;
     
-    gInt.bJogar = document.getElementById('Jogar')
-    gInt.bJogar.onclick = callbackOnClickJogar;
+    // gInt.bJogar = document.getElementById('Jogar')
+    // gInt.bJogar.onclick = callbackOnClickJogar;
 };
 
 function onKeyDownHandler( e ) {
+    const keyName = e.key.toUpperCase();
+    console.log(keyName);
+
+    switch (keyName) {
+        case 'K':
+            console.log('Pause Sub');
+            gCamera.vTrans = 0;
+            break;
+        case 'L':
+            console.log('incrementa velocidade');
+            gCamera.vTrans++;
+            break;
+        case 'J':
+            console.log('decrementa velocidade');
+            gCamera.vTrans--;
+            break;
+        case 'W':
+            console.log('incrementa pitch');
+            incrementa =  true;
+            eixo = 0;
+            break;
+        case 'X':
+            console.log('decrementa pitch');
+            decrementa = true;
+            eixo = 0;
+            break;
+        case 'A':
+            console.log('incrementa yaw');
+            incrementa =  true;
+            eixo = 1;
+            break;
+        case 'D':
+            console.log('decrementa yaw');
+            decrementa = true;
+            eixo = 1;
+            break;
+        case 'Z':
+            console.log('incrementa row');
+            incrementa =  true;
+            eixo = 2;
+            break;
+        case 'C':
+            console.log('decrementa row');
+            decrementa = true;
+            eixo = 2;
+            break;
+    }
 };
 
 // ==================================================================
@@ -183,8 +244,41 @@ function crieShaders() {
  */
 function render() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    
+    let now = Date.now();    
+    let delta = (now - ultimoT)/1000;
+
+    // mudança na rotação
+    if(incrementa) {
+        gCamera.theta[eixo]++;
+        incrementa = false;
+    }
+    else if(decrementa) {
+        gCamera.theta[eixo]--;
+        decrementa = false;
+    }
+
+    gCamera.mat = mat4();
+    
+    let crx = rotateX(gCamera.theta[0]);
+    gCamera.mat = mult(crx, gCamera.mat);
+    let cry = rotateY(gCamera.theta[1]);
+    gCamera.mat = mult(cry, gCamera.mat);
+    let crz = rotateZ(gCamera.theta[2]);
+    gCamera.mat = mult(crz, gCamera.mat);
+
+    // mudança de velocidade
+    if (gCamera.vTrans != 0) {
+        gCamera.pos = add(gCamera.pos, mult(gCamera.vTrans*delta, gCamera.dir));
+    }
+
+    // atualiza view
+    gCamera.right = vec3( gCamera.mat[0][0], gCamera.mat[0][1], gCamera.mat[0][2]); 
+    gCamera.up    = vec3( gCamera.mat[1][0], gCamera.mat[1][1], gCamera.mat[1][2]); 
+    gCamera.dir   = vec3(-gCamera.mat[2][0],-gCamera.mat[2][1],-gCamera.mat[2][2]); 
 
     gCtx.view = lookAt( gCamera.pos, add(gCamera.pos, gCamera.dir), gCamera.up);        
+    gCtx.view = mult(gCtx.view, gCamera.mat);
 
     gl.uniformMatrix4fv(gShader.uView, false, flatten(gCtx.view));
 
@@ -219,6 +313,9 @@ function render() {
     
     };
 
+    ultimoT = now;
+
+    window.requestAnimationFrame(render);
 };
 
 
