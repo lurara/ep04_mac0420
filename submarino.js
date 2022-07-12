@@ -65,7 +65,9 @@ var gShader = {
 var gCtx = {
     view : mat4(),     // view matrix, inicialmente identidade
     perspective : mat4(), // projection matrix
+    rodando : true
 };
+
 
 // ==================================================================
 // chama a main quando terminar de carregar a janela
@@ -108,11 +110,25 @@ function main()
 function crieInterface() {
     document.addEventListener('keydown', onKeyDownHandler);
 
-    // gInt.bPasso = document.getElementById('Passo');
-    // gInt.bPasso.onclick = callbackOnClickPasso;
+    gCtx.passo = document.getElementById('Passo');
+    gCtx.passo.disabled = gCtx.rodando;
+    gCtx.passo.onclick = callbackOnClickPasso;
     
-    // gInt.bJogar = document.getElementById('Jogar')
-    // gInt.bJogar.onclick = callbackOnClickJogar;
+    gCtx.jogar = document.getElementById('Jogar')
+    gCtx.jogar.onclick = callbackOnClickJogar;
+};
+
+function callbackOnClickPasso() {
+    if(!gCtx.rodando) {
+        console.log("passo");
+        gCtx.passo = true;
+        render();
+    }
+};
+
+function callbackOnClickJogar() {
+    gCtx.rodando = !gCtx.rodando;
+    document.getElementById("Passo").disabled = gCtx.rodando;
 };
 
 function onKeyDownHandler( e ) {
@@ -248,39 +264,48 @@ function render() {
     let now = Date.now();    
     let delta = (now - ultimoT)/1000;
 
-    // mudança na rotação
-    if(incrementa) {
-        gCamera.theta[eixo]++;
-        incrementa = false;
+    if(gCtx.rodando || gCtx.passo) { 
+
+        // mudança na rotação
+        if(incrementa) {
+            gCamera.theta[eixo]++;
+            incrementa = false;
+        }
+        else if(decrementa) {
+            gCamera.theta[eixo]--;
+            decrementa = false;
+        }
+
+        gCamera.mat = mat4();
+        
+        let crx = rotateX(gCamera.theta[0]);
+        gCamera.mat = mult(crx, gCamera.mat);
+        let cry = rotateY(gCamera.theta[1]);
+        gCamera.mat = mult(cry, gCamera.mat);
+        let crz = rotateZ(gCamera.theta[2]);
+        gCamera.mat = mult(crz, gCamera.mat);
+
+        // mudança de velocidade
+        if (gCamera.vTrans != 0) {
+            gCamera.pos = add(gCamera.pos, mult(gCamera.vTrans*delta, gCamera.dir));
+        }
+
+        // atualiza view
+        gCamera.right = vec3( gCamera.mat[0][0], gCamera.mat[0][1], gCamera.mat[0][2]); 
+        gCamera.up    = vec3( gCamera.mat[1][0], gCamera.mat[1][1], gCamera.mat[1][2]); 
+        gCamera.dir   = vec3(-gCamera.mat[2][0],-gCamera.mat[2][1],-gCamera.mat[2][2]); 
+
+        gCtx.view = lookAt( gCamera.pos, add(gCamera.pos, gCamera.dir), gCamera.up);        
+        gCtx.view = mult(gCtx.view, gCamera.mat);
+
+        gl.uniformMatrix4fv(gShader.uView, false, flatten(gCtx.view));
+        
+        if(gCtx.passo) {
+            gCtx.passo = false;
+        }
     }
-    else if(decrementa) {
-        gCamera.theta[eixo]--;
-        decrementa = false;
-    }
 
-    gCamera.mat = mat4();
-    
-    let crx = rotateX(gCamera.theta[0]);
-    gCamera.mat = mult(crx, gCamera.mat);
-    let cry = rotateY(gCamera.theta[1]);
-    gCamera.mat = mult(cry, gCamera.mat);
-    let crz = rotateZ(gCamera.theta[2]);
-    gCamera.mat = mult(crz, gCamera.mat);
-
-    // mudança de velocidade
-    if (gCamera.vTrans != 0) {
-        gCamera.pos = add(gCamera.pos, mult(gCamera.vTrans*delta, gCamera.dir));
-    }
-
-    // atualiza view
-    gCamera.right = vec3( gCamera.mat[0][0], gCamera.mat[0][1], gCamera.mat[0][2]); 
-    gCamera.up    = vec3( gCamera.mat[1][0], gCamera.mat[1][1], gCamera.mat[1][2]); 
-    gCamera.dir   = vec3(-gCamera.mat[2][0],-gCamera.mat[2][1],-gCamera.mat[2][2]); 
-
-    gCtx.view = lookAt( gCamera.pos, add(gCamera.pos, gCamera.dir), gCamera.up);        
-    gCtx.view = mult(gCtx.view, gCamera.mat);
-
-    gl.uniformMatrix4fv(gShader.uView, false, flatten(gCtx.view));
+    ultimoT = now;
 
     for (let obj of gCena.objs ) {
         var model = mat4();  // identidade
@@ -312,8 +337,6 @@ function render() {
         
     
     };
-
-    ultimoT = now;
 
     window.requestAnimationFrame(render);
 };
