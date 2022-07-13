@@ -90,7 +90,8 @@ function main()
 
     // Inicializações feitas apenas 1 vez
     gl.viewport(0, 0, gCanvas.width, gCanvas.height);
-    gl.clearColor(COR_CLEAR[0], COR_CLEAR[1], COR_CLEAR[2], COR_CLEAR[3]);
+    //gl.clearColor(COR_CLEAR[0], COR_CLEAR[1], COR_CLEAR[2], COR_CLEAR[3]);
+    gl.clearColor(NEVOA.cor[0], NEVOA.cor[1], NEVOA.cor[2], NEVOA.cor[3]);
     gl.enable(gl.DEPTH_TEST);
 
     // shaders
@@ -283,7 +284,6 @@ function crieShaders() {
  */
 function render() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    //gl.clearColor(1.0, 0.0, 0.0, 1.0);
     
     let now = Date.now();    
     let delta = (now - ultimoT)/1000;
