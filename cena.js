@@ -22,23 +22,48 @@ const LUZ = {
 
 const SUBS = [
     {
-        pos : vec3(-20, 40, 250),
-        theta : vec3(0, 0, 0), // -90, 0, 0
-        vTrans : -5,
-        vTheta : vec3(0, 0, 0),
-        escala : vec3(5, 5, 25),
+        pos : vec3(-50, 40, 250),
+        theta : vec3(-10, 0, 0), // -90, 0, 0
+        vTrans : 0,
+        vTheta : vec3(0, .5, 0),
+        escala : vec3(0, 5, 2),
+        //escala : vec3(5, 5, 25),
         cor : vec4(1.0, 0.0, 0.0, 1.0),
         alfa : 250.0,
+        ndivs : 0,
         },
     {
-        pos : vec3(60, 75, 50),
-        theta : vec3(-90, 45, 45),
+        pos : vec3(-50, 40, 150),
+        theta : vec3(0, 0, 0), // -90, 0, 0
         vTrans : 0,
-        vTheta : vec3(0, 0, 0),
-        escala : vec3(10, 10, 50),
-        cor : vec4(1.0, 0.0, 1.0, 1.0),
-        alfa : 200,
+        vTheta : vec3(0, 0.5, 0),
+        escala : vec3(5, 5, 5),
+        //escala : vec3(5, 5, 25),
+        cor : vec4(1.0, 0.0, 0.0, 1.0),
+        alfa : 250.0,
+        ndivs : 0,
         },
+    // {
+    //     pos : vec3(-50, 40, 150),
+    //     theta : vec3(0, 0, 0), // -90, 0, 0
+    //     vTrans : 0,
+    //     vTheta : vec3(0, 0, 0),
+    //     escala : vec3(5, 5, 25),
+    //     //escala : vec3(5, 5, 25),
+    //     cor : vec4(1.0, 0.0, 0.0, 1.0),
+    //     alfa : 250.0,
+    //     ndivs : 0,
+    //     },
+    // {
+    //     pos : vec3(60, 75, 50),
+    //     theta : vec3(-0, 45, 45),
+    //     vTrans : 0,
+    //     vTheta : vec3(0, 0, 0),
+    //     escala : vec3(10, 10, 50),
+    //     cor : vec4(1.0, 0.0, 1.0, 1.0),
+    //     alfa : 200,
+    //     ndivs : 1
+    //     },
     // {
     //     pos : vec3(-50, -450, 65),
     //     theta : vec3(-80, 0, 0),
@@ -47,6 +72,7 @@ const SUBS = [
     //     escala : vec3(10, 10, 50),
     //     cor : vec4(0.0, 1.0, 0.0, 1.0),
     //     alfa : 150,
+    //     ndivs : 1
     //     },
     // {
     //     pos : vec3(-150, 450, 75),
@@ -203,6 +229,7 @@ function Cena() {
     this.bCor  = [];
 
     this.objs = [];
+    this.subs = [];
     this.fundo = new FundoDoMar(FUNDO.cor, FUNDO.alfa);
     this.cubo = new Cubo();
 
@@ -231,7 +258,8 @@ function Cena() {
             this.bCor = this.bCor.concat( b.bCor );
             this.objs.push(b);    
         }
- 
+        
+        // prepara e insere cubos
         for (i=0; i<CUBOS.length; i++) {
             let c = CUBOS[i]
             let b = new Cubo(c.cor, c.alfa);
@@ -246,7 +274,24 @@ function Cena() {
             this.objs.push(b);    
         };
 
+        // prepara e insere subs
+        for (i=0; i< SUBS.length; i++) {
+            let b = new Esfera(SUBS[i].cor, SUBS[i].alfa);
+            b.init(SUBS[i].ndivs, SUBS[i].solido);
+            b.escala = SUBS[i].escala; 
+            b.pos    = SUBS[i].pos;
+            b.theta  = SUBS[i].theta; 
+            b.vTrans = SUBS[i].vTrans; // added
+            b.vTheta = SUBS[i].vTheta; // added
+            b.bufPos = this.bPos.length; 
+            this.bPos = this.bPos.concat( b.bPos );
+            this.bNorm = this.bNorm.concat( b.bNorm );
+            this.bCor = this.bCor.concat( b.bCor );
+            this.subs.push(b);
+        }
+
         this.np = this.bPos.length;
+        console.log(this.subs);
         console.log("Cena vertices: ", this.np);
     };    
 };

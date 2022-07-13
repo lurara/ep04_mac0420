@@ -289,22 +289,24 @@ function render() {
         mudou = false;
     }
 
-
     if(gCtx.rodando || gCtx.passo) { 
 
-        // mudança na rotação
+        // muda rotação
+        if (gSub.vTheta != 0)
+            gSub.theta = add(gSub.theta, gSub.vTheta);
+        
+        // aumenta rotação
         if(incrementa) {
-            //gCamera.theta[eixo]++;
             gSub.theta[eixo]++;
             incrementa = false;
         }
         else if(decrementa) {
             gSub.theta[eixo]--;
-            //gCamera.theta[eixo]--;
             decrementa = false;
         }
 
-        gCamera.theta[eixo] = gSub.theta[eixo];
+        gCamera.theta = gSub.theta;
+        
 
         gCamera.mat = mat4();
         
@@ -321,41 +323,79 @@ function render() {
             gCamera.pos = gSub.pos;
         }
 
-        // let crx = rotateX(gCamera.theta[0]);
-        // gCamera.mat = mult(crx, gCamera.mat);
-        // let cry = rotateY(gCamera.theta[1]);
-        // gCamera.mat = mult(cry, gCamera.mat);
-        // let crz = rotateZ(gCamera.theta[2]);
-        // gCamera.mat = mult(crz, gCamera.mat);
-
-        // mudança de velocidade
-        // if (gCamera.vTrans != 0) {
-        //     gCamera.pos = add(gCamera.pos, mult(gCamera.vTrans*delta, gCamera.dir));
-        // }
-
         // atualiza view
         gCamera.right = vec3( gCamera.mat[0][0], gCamera.mat[0][1], gCamera.mat[0][2]); 
         gCamera.up    = vec3( gCamera.mat[1][0], gCamera.mat[1][1], gCamera.mat[1][2]); 
         gCamera.dir   = vec3(-gCamera.mat[2][0],-gCamera.mat[2][1],-gCamera.mat[2][2]); 
 
         gCtx.view = lookAt( gCamera.pos, add(gCamera.pos, gCamera.dir), gCamera.up);        
-        gCtx.view = mult(gCtx.view, gCamera.mat);
+        gCtx.view = mult(gCamera.mat, gCtx.view);
 
         gl.uniformMatrix4fv(gShader.uView, false, flatten(gCtx.view));
+        
+        // atualiza SUBS
+        atualizaSubs(gCena.subs, gSub, indCurSub, delta);
         
         if(gCtx.passo) {
             gCtx.passo = false;
         }
     }
 
-    ultimoT = now;
+    // carrega objetos não-submarinos
+    loadObjects(gCena.objs);
 
-    for (let obj of gCena.objs ) {
+    // carrega submarinos
+    loadObjects(gCena.subs);
+
+    ultimoT = now;
+    window.requestAnimationFrame(render);
+};
+
+function atualizaSubs(subsList, gSub, ind, delta) {
+    // atualiza atual...
+    var auxBuf = subsList[ind].bufPos;
+    var auxAlfa = subsList[ind].alfa;
+    var auxNP = subsList[ind].np;
+
+    subsList[ind] = gSub;
+    subsList[ind].bufPos = auxBuf;
+    subsList[ind].alfa = auxAlfa;
+    subsList[ind].np = auxNP;
+
+    var i;
+    for (i = 0; i < subsList.length; i++) {
+        let subAtual = subsList[i];
+        let m = mat4();
+
+        if( i != ind ) {
+
+            if (subAtual.vTheta) 
+                subAtual.theta = add(subAtual.theta, subAtual.vTheta);
+
+            if ( subAtual.vTrans ) { 
+                // mudança de velocidade
+                let crx = rotateX(subAtual.theta[0]);
+                m = mult(crx, m);
+                let cry = rotateY(subAtual.theta[1]);
+                m = mult(cry, m);
+                let crz = rotateZ(subAtual.theta[2]);
+                m = mult(crz, m);
+    
+                subAtual.pos = add(subAtual.pos, mult(subAtual.vTrans*delta,  vec3(-m[2][0],-m[2][1],-m[2][2])));
+            }
+        }
+    }
+};
+
+function loadObjects(objList) {
+    for (let obj of objList ) {
         var model = mat4();  // identidade
+        
         // escala os eixos
         model[0][0] *= obj.escala[0];
         model[1][1] *= obj.escala[1];
         model[2][2] *= obj.escala[2];
+
         // rotação
         let rx = rotateX(obj.theta[0]);
         model = mult(rx, model);
@@ -363,11 +403,12 @@ function render() {
         model = mult(ry, model);
         let rz = rotateZ(obj.theta[2]);
         model = mult(rz, model);
+        
         // translação
         model[0][3] = obj.pos[0];
         model[1][3] = obj.pos[1];
         model[2][3] = obj.pos[2];
-
+        
         let modelView = mult(gCtx.view, model);
         let modelViewInv = inverse(modelView);
         let modelViewInvTrans = transpose(modelViewInv);
@@ -377,13 +418,9 @@ function render() {
    
         gl.uniform1f(gShader.uAlfa, obj.alfa);
         gl.drawArrays(gl.TRIANGLES, obj.bufPos, obj.np);
-        
     
-    };
-
-    window.requestAnimationFrame(render);
+    }
 };
-
 
 // ========================================================
 // Código fonte dos shaders em GLSL
