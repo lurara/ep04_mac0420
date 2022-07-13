@@ -150,23 +150,23 @@ function onKeyDownHandler( e ) {
             //gCamera.vTrans--;
             break;
         case 'W':
-            console.log('incrementa pitch');
-            incrementa =  true;
+            console.log('decrementa pitch');
+            decrementa =  true;
             eixo = 0;
             break;
         case 'X':
-            console.log('decrementa pitch');
-            decrementa = true;
+            console.log('incrementa pitch');
+            incrementa = true;
             eixo = 0;
             break;
         case 'A':
-            console.log('incrementa yaw');
-            incrementa =  true;
+            console.log('decrementa yaw');
+            decrementa =  true;
             eixo = 1;
             break;
         case 'D':
-            console.log('decrementa yaw');
-            decrementa = true;
+            console.log('incrementa yaw');
+            incrementa = true;
             eixo = 1;
             break;
         case 'Z':
@@ -192,6 +192,12 @@ function onKeyDownHandler( e ) {
             console.log('anterior sub');
             if (indCurSub > 0) indCurSub--;
             else indCurSub = SUBS.length - 1;
+
+            mudou = true;
+            break;
+        case 'S':
+            console.log('zera rotação');
+            gSub.vTheta = vec3(0, 0, 0);
 
             mudou = true;
             break;

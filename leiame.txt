@@ -1,1 +1,1 @@
-adicionar vTheta
+alterar o controle de velocidade

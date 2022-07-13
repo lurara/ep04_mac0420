@@ -25,7 +25,7 @@ const SUBS = [
         pos : vec3(-50, 40, 250),
         theta : vec3(-10, 0, 0), // -90, 0, 0
         vTrans : 0,
-        vTheta : vec3(0, .5, 0),
+        vTheta : vec3(0, 0, 0),
         escala : vec3(0, 5, 2),
         //escala : vec3(5, 5, 25),
         cor : vec4(1.0, 0.0, 0.0, 1.0),
@@ -107,8 +107,8 @@ const FUNDO = {
 const NEVOA = {
     peso : 0.3,
     cor : vec4(1.0, 0.0, 0.0, 1.0),
-    near: 200.0,
-    far:  700.0
+    near: 50.0,
+    far:  400.0
 };
 
 const BOLAS = [
