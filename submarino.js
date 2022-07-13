@@ -28,6 +28,7 @@ var gCanvas;   // canvas
 var ultimoT = Date.now(); // delta
 var incrementa = false;
 var decrementa = false;
+var mudou = false;
 var eixo = -1;
 
 var gCena = new Cena();
@@ -55,6 +56,8 @@ function Camera() {
 
 var gCamera = new Camera();
 gCamera.init(SUBS[0].pos, (SUBS[0].theta), 0);
+var indCurSub = 0; // indice do SUB atual
+var gSub = SUBS[indCurSub]; // SUB atual
 
 // guarda coisas do shader
 var gShader = {
@@ -96,11 +99,6 @@ function main()
     // interface
     crieInterface();
 
-    // inicializa cam
-    // gCamera.vz = normalize(subtract(gCamera.dir, gCamera.pos));
-    // gCamera.right = normalize(cross(gCamera.vz, gCamera.up));
-    // gCamera.vy = normalize(cross(gCamera.vx, gCamera.vz));
-
     // finalmente...
     render();
 };
@@ -138,15 +136,18 @@ function onKeyDownHandler( e ) {
     switch (keyName) {
         case 'K':
             console.log('Pause Sub');
-            gCamera.vTrans = 0;
+            gSub.vTrans = 0;
+            //gCamera.vTrans = 0;
             break;
         case 'L':
             console.log('incrementa velocidade');
-            gCamera.vTrans++;
+            gSub.vTrans++;
+            //gCamera.vTrans++;
             break;
         case 'J':
             console.log('decrementa velocidade');
-            gCamera.vTrans--;
+            gSub.vTrans--;
+            //gCamera.vTrans--;
             break;
         case 'W':
             console.log('incrementa pitch');
@@ -177,6 +178,22 @@ function onKeyDownHandler( e ) {
             console.log('decrementa row');
             decrementa = true;
             eixo = 2;
+            break;
+        case 'M':
+            console.log('proximo sub');
+            
+            if (indCurSub < SUBS.length - 1) indCurSub++;
+            else indCurSub = 0;
+
+            mudou = true;
+
+            break;
+        case 'N':
+            console.log('anterior sub');
+            if (indCurSub > 0) indCurSub--;
+            else indCurSub = SUBS.length - 1;
+
+            mudou = true;
             break;
     }
 };
@@ -260,35 +277,61 @@ function crieShaders() {
  */
 function render() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    //gl.clearColor(1.0, 0.0, 0.0, 1.0);
     
     let now = Date.now();    
     let delta = (now - ultimoT)/1000;
+
+    // Mudou submarino
+    if (mudou) {
+        gCamera.init(SUBS[indCurSub].pos, SUBS[indCurSub].theta, SUBS[indCurSub].vTrans);
+        gSub = SUBS[indCurSub];
+        mudou = false;
+    }
+
 
     if(gCtx.rodando || gCtx.passo) { 
 
         // mudança na rotação
         if(incrementa) {
-            gCamera.theta[eixo]++;
+            //gCamera.theta[eixo]++;
+            gSub.theta[eixo]++;
             incrementa = false;
         }
         else if(decrementa) {
-            gCamera.theta[eixo]--;
+            gSub.theta[eixo]--;
+            //gCamera.theta[eixo]--;
             decrementa = false;
         }
 
+        gCamera.theta[eixo] = gSub.theta[eixo];
+
         gCamera.mat = mat4();
         
-        let crx = rotateX(gCamera.theta[0]);
+        let crx = rotateX(gSub.theta[0]);
         gCamera.mat = mult(crx, gCamera.mat);
-        let cry = rotateY(gCamera.theta[1]);
+        let cry = rotateY(gSub.theta[1]);
         gCamera.mat = mult(cry, gCamera.mat);
-        let crz = rotateZ(gCamera.theta[2]);
+        let crz = rotateZ(gSub.theta[2]);
         gCamera.mat = mult(crz, gCamera.mat);
 
         // mudança de velocidade
-        if (gCamera.vTrans != 0) {
-            gCamera.pos = add(gCamera.pos, mult(gCamera.vTrans*delta, gCamera.dir));
+        if (gSub.vTrans != 0) {
+            gSub.pos = add(gSub.pos, mult(gSub.vTrans*delta, gCamera.dir));
+            gCamera.pos = gSub.pos;
         }
+
+        // let crx = rotateX(gCamera.theta[0]);
+        // gCamera.mat = mult(crx, gCamera.mat);
+        // let cry = rotateY(gCamera.theta[1]);
+        // gCamera.mat = mult(cry, gCamera.mat);
+        // let crz = rotateZ(gCamera.theta[2]);
+        // gCamera.mat = mult(crz, gCamera.mat);
+
+        // mudança de velocidade
+        // if (gCamera.vTrans != 0) {
+        //     gCamera.pos = add(gCamera.pos, mult(gCamera.vTrans*delta, gCamera.dir));
+        // }
 
         // atualiza view
         gCamera.right = vec3( gCamera.mat[0][0], gCamera.mat[0][1], gCamera.mat[0][2]); 
