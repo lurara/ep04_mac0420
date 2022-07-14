@@ -23,10 +23,10 @@ const LUZ = {
 const SUBS = [
     {
         pos : vec3(-50, 40, 250),
-        theta : vec3(-10, 0, 0), // -90, 0, 0
-        vTrans : 0,
+        theta : vec3(0, 0, 0), // -90, 0, 0
+        vTrans : 1,
         vTheta : vec3(0, 0, 0),
-        escala : vec3(0, 5, 2),
+        escala : vec3(0, 2, 2),
         //escala : vec3(5, 5, 25),
         cor : vec4(1.0, 0.0, 0.0, 1.0),
         alfa : 250.0,
@@ -36,7 +36,7 @@ const SUBS = [
         pos : vec3(-50, 40, 150),
         theta : vec3(0, 0, 0), // -90, 0, 0
         vTrans : 0,
-        vTheta : vec3(0, 0.5, 0),
+        vTheta : vec3(0, 5, 0),
         escala : vec3(5, 5, 5),
         //escala : vec3(5, 5, 25),
         cor : vec4(1.0, 0.0, 0.0, 1.0),
