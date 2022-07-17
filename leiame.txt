@@ -1,1 +1,16 @@
-um erro esquisitio?
+Esta é minha implementação do EP4. 
+
+Encontrei alguns problemas ao notar que minha câmera não estava se comportando como 
+esperado, então fiquei por um tempo tentando corrigi-la. Notar esse erro foi possí-
+vel graças à implementação do posicionamento da câmera no 'nariz' do submarino. 
+
+Levei em média 15h para implementar o que escolhi programar (partes principais de
+controle do submarino, mudança de câmera, névoa e aplicação de mapa de sombras).
+
+Também tive dificuldades com a implementação das texturas de shaders. Tirei as dú-
+vidas e no fim, o uso VAO ajudou muito na implementação.
+
+Particularmente, gostei bastante de implementar este EP. Foi o mais divertido e me
+ajudou a revisar alguns conceitos das aulas, além de que o resultado final é muito
+bonito. :)
+

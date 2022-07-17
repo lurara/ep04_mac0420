@@ -30,11 +30,12 @@
  var decrementa = false;
  var mudou = false;
  var eixo = -1;
- 
+      
  var gCena = new Cena();
- //var corFragmento = 
- //var corNevoa = vec4(1.0, 0.0, 0.0, 1.0);
  gCena.init();  // cria objetos e buffers
+
+ var gCSubs = new cenaSubs();
+ gCSubs.init(); // cria subs
  
  function Camera() {
  
@@ -63,6 +64,12 @@
  var gShader = {
      program : null,
  };
+
+ // shader de submarinos
+ var gShaderSub = {
+    program : null,
+    vao: null,
+ };
  
  // guarda coisas da interface e contexto do programa
  var gCtx = {
@@ -70,8 +77,7 @@
      perspective : mat4(), // projection matrix
      rodando : true
  };
- 
- 
+
  // ==================================================================
  // chama a main quando terminar de carregar a janela
  window.onload = main;
@@ -90,12 +96,12 @@
  
      // Inicializações feitas apenas 1 vez
      gl.viewport(0, 0, gCanvas.width, gCanvas.height);
-     //gl.clearColor(COR_CLEAR[0], COR_CLEAR[1], COR_CLEAR[2], COR_CLEAR[3]);
      gl.clearColor(NEVOA.cor[0], NEVOA.cor[1], NEVOA.cor[2], NEVOA.cor[3]);
      gl.enable(gl.DEPTH_TEST);
  
      // shaders
-     crieShaders();
+     crieShaders (true, gCena);
+     crieShaders (false, gCSubs );
  
      // interface
      crieInterface();
@@ -138,17 +144,14 @@
          case 'K':
              console.log('Pause Sub');
              gSub.vTrans = 0;
-             //gCamera.vTrans = 0;
              break;
          case 'L':
              console.log('incrementa velocidade');
              gSub.vTrans++;
-             //gCamera.vTrans++;
              break;
          case 'J':
              console.log('decrementa velocidade');
              gSub.vTrans--;
-             //gCamera.vTrans--;
              break;
          case 'W':
              console.log('decrementa pitch');
@@ -209,71 +212,103 @@
  /**
   * cria e configura os shaders
   */
- function crieShaders() {
+ function crieShaders(color_not_texture=true, cena) {
      //  cria o programa
-     gShader.program = makeProgram(gl, gVertexShaderSrc, gFragmentShaderSrc);
-     gl.useProgram(gShader.program);
+     var shader_atual;
+     var v_name, f_name;
+     
+     if (color_not_texture) {
+        shader_atual = gShader;
+        v_name = gVertexShaderSrc;
+        f_name = gFragmentShaderSrc;
+     }
+     else {
+        shader_atual = gShaderSub;
+        v_name = gVertexShaderSub;
+        f_name = gFragmentShaderSub;
+     }
+
+     if(!shader_atual.program)
+        shader_atual.program = makeProgram(gl, v_name, f_name);
+     gl.useProgram(shader_atual.program);
+
+     shader_atual.vao = gl.createVertexArray();
+     gl.bindVertexArray(shader_atual.vao);
      
      // buffer das normais
      var bufNormais = gl.createBuffer();
      gl.bindBuffer(gl.ARRAY_BUFFER, bufNormais );
-     gl.bufferData(gl.ARRAY_BUFFER, flatten(gCena.bNorm), gl.STATIC_DRAW);
+     gl.bufferData(gl.ARRAY_BUFFER, flatten(cena.bNorm), gl.STATIC_DRAW);
  
-     var aNormal = gl.getAttribLocation(gShader.program, "aNormal");
+     var aNormal = gl.getAttribLocation(shader_atual.program, "aNormal");
      gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
      gl.enableVertexAttribArray(aNormal);
  
      // buffer dos vértices
      var bufVertices = gl.createBuffer();
      gl.bindBuffer(gl.ARRAY_BUFFER, bufVertices);
-     gl.bufferData(gl.ARRAY_BUFFER, flatten(gCena.bPos), gl.STATIC_DRAW);
+     gl.bufferData(gl.ARRAY_BUFFER, flatten(cena.bPos), gl.STATIC_DRAW);
  
-     var aPosition = gl.getAttribLocation(gShader.program, "aPosition");
+     var aPosition = gl.getAttribLocation(shader_atual.program, "aPosition");
      gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
      gl.enableVertexAttribArray(aPosition); 
+
+     if (color_not_texture) {
+        // buffer das cores
+        var bufCores = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, bufCores);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(cena.bCor), gl.STATIC_DRAW);
+    
+        var aCor = gl.getAttribLocation(shader_atual.program, "aCor");
+        gl.vertexAttribPointer(aCor, 4, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(aCor); 
+     }
+     else {
+        // textura
+        var bufTextura = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, bufTextura);
+        gl.bufferData(gl.ARRAY_BUFFER, flatten(cena.bTex), gl.STATIC_DRAW);
+        var aTexCoord = gl.getAttribLocation(shader_atual.program, "aTexCoord");
+        gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(aTexCoord);
+        configureTexturaDaURL(URL);
+
+        gl.uniform1i(gl.getUniformLocation(shader_atual.program, "uTextureMap"), 0);
+     }
  
-     // buffer das cores
-     var bufCores = gl.createBuffer();
-     gl.bindBuffer(gl.ARRAY_BUFFER, bufCores);
-     gl.bufferData(gl.ARRAY_BUFFER, flatten(gCena.bCor), gl.STATIC_DRAW);
- 
-     var aCor = gl.getAttribLocation(gShader.program, "aCor");
-     gl.vertexAttribPointer(aCor, 4, gl.FLOAT, false, 0, 0);
-     gl.enableVertexAttribArray(aCor); 
-     
      // resolve os uniforms
-     gShader.uModel   = gl.getUniformLocation(gShader.program, "uModel");
-     gShader.uView   = gl.getUniformLocation(gShader.program, "uView");
-     gShader.uPerspective = gl.getUniformLocation(gShader.program, "uPerspective");
-     gShader.uInverseTranspose = gl.getUniformLocation(gShader.program, "uInverseTranspose");
+    shader_atual.uModel   = gl.getUniformLocation(shader_atual.program, "uModel");
+    shader_atual.uView   = gl.getUniformLocation(shader_atual.program, "uView");
+    shader_atual.uPerspective = gl.getUniformLocation(shader_atual.program, "uPerspective");
+    shader_atual.uInverseTranspose = gl.getUniformLocation(shader_atual.program, "uInverseTranspose");
  
      // calcula a matriz de transformação perpectiva (fovy, aspect, near, far)
      // que é feita apenas 1 vez
-     gCtx.perspective = perspective( CAM.fovy, CAM.aspect, CAM.near, CAM.far);
-     gl.uniformMatrix4fv(gShader.uPerspective, false, flatten(gCtx.perspective));
+     gCtx.perspective = perspective( CAM.fovy, CAM.aspect, CAM.near, CAM.far);;
+     gl.uniformMatrix4fv(shader_atual.uPerspective, false, flatten(gCtx.perspective));
      
      // parametros para iluminação
-     gShader.uLuzPos = gl.getUniformLocation(gShader.program, "uLuzPos");
-     gl.uniform4fv( gShader.uLuzPos, LUZ.pos);
+     shader_atual.uLuzPos = gl.getUniformLocation(shader_atual.program, "uLuzPos");
+     gl.uniform4fv( shader_atual.uLuzPos, LUZ.pos);
  
      // fragment shader
-     gShader.uLuzAmb = gl.getUniformLocation(gShader.program, "uLuzAmbiente");
-     gShader.uLuzDif = gl.getUniformLocation(gShader.program, "uLuzDifusao");
-     gShader.uLuzEsp = gl.getUniformLocation(gShader.program, "uLuzEspecular");
-     gShader.uAlfa   = gl.getUniformLocation(gShader.program, "uAlfaEspecular");
+    shader_atual.uLuzAmb = gl.getUniformLocation(shader_atual.program, "uLuzAmbiente");
+    shader_atual.uLuzDif = gl.getUniformLocation(shader_atual.program, "uLuzDifusao");
+    shader_atual.uLuzEsp = gl.getUniformLocation(shader_atual.program, "uLuzEspecular");
+    shader_atual.uAlfa   = gl.getUniformLocation(shader_atual.program, "uAlfaEspecular");
  
      // nevoa
-     gShader.uCorNevoa = gl.getUniformLocation(gShader.program, "uCorNevoa");
-     gShader.uNevoaNear = gl.getUniformLocation(gShader.program, "uNevoaNear");
-     gShader.uNevoaFar = gl.getUniformLocation(gShader.program, "uNevoaFar");
+     shader_atual.uCorNevoa = gl.getUniformLocation(shader_atual.program, "uCorNevoa");
+     shader_atual.uNevoaNear = gl.getUniformLocation(shader_atual.program, "uNevoaNear");
+     shader_atual.uNevoaFar = gl.getUniformLocation(shader_atual.program, "uNevoaFar");
+
+    gl.uniform4fv( shader_atual.uCorNevoa, NEVOA.cor );
+    gl.uniform1f( shader_atual.uNevoaNear, NEVOA.near );
+    gl.uniform1f( shader_atual.uNevoaFar, NEVOA.far );
  
-     gl.uniform4fv( gShader.uCorNevoa, NEVOA.cor );
-     gl.uniform1f( gShader.uNevoaNear, NEVOA.near );
-     gl.uniform1f( gShader.uNevoaFar, NEVOA.far );
- 
-     gl.uniform4fv( gShader.uLuzAmb, LUZ.amb );
-     gl.uniform4fv( gShader.uLuzDif, LUZ.dif );
-     gl.uniform4fv( gShader.uLuzEsp, LUZ.esp );
+    gl.uniform4fv( shader_atual.uLuzAmb, LUZ.amb );
+    gl.uniform4fv( shader_atual.uLuzDif, LUZ.dif );
+    gl.uniform4fv( shader_atual.uLuzEsp, LUZ.esp );
  
  };
  
@@ -290,7 +325,7 @@
     m = mult( rotateY( gSub.theta[1]), m);
     m = mult( rotateZ( gSub.theta[2]), m);
     
-    let dir   = vec3(-m[2][0],-m[2][1],-m[2][2]); // -z
+    let dir = vec3(-m[2][0],-m[2][1],-m[2][2]); // -z
 
     return add(gSub.pos, mult(gSub.escala[2]*2, normalize(dir)));
 
@@ -360,35 +395,42 @@
 
          gCtx.view = lookAt(gCamera.pos, add(gCamera.pos, gCamera.dir), gCamera.up);  
          //gCtx.view = mult(gCamera.mat, gCtx.view);
- 
-         gl.uniformMatrix4fv(gShader.uView, false, flatten(gCtx.view));
          
          // atualiza SUBS
-         atualizaSubs(gCena.subs, gSub, indCurSub, delta);
+         atualizaSubs(gCSubs.subs, gSub, indCurSub, delta);
          
          if(gCtx.passo) {
              gCtx.passo = false;
          }
      }
- 
+
      // carrega objetos não-submarinos
-     loadObjects(gCena.objs);
- 
+     gl.useProgram(gShader.program);
+     gl.bindVertexArray(gShader.vao);
+     gl.uniformMatrix4fv(gShader.uView, false, flatten(gCtx.view));
+     loadObjects(gCena.objs, false);
+
+    // libera os buffers. O WebGL agora vai pintar no gCanvas.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
      // carrega submarinos
-     loadObjects(gCena.subs);
+     gl.useProgram(gShaderSub.program);
+     gl.bindVertexArray(gShaderSub.vao);
+     gl.uniformMatrix4fv(gShaderSub.uView, false, flatten(gCtx.view));
+     loadObjects(gCSubs.subs, true);
  
      ultimoT = now;
+
      window.requestAnimationFrame(render);
  };
  
  function atualizaSubs(subsList, gSub, ind, delta) {
      // atualiza atual...
-     var auxBuf = subsList[ind].bufPos;
      var auxAlfa = subsList[ind].alfa;
      var auxNP = subsList[ind].np;
  
+ 
      subsList[ind] = gSub;
-     subsList[ind].bufPos = auxBuf;
      subsList[ind].alfa = auxAlfa;
      subsList[ind].np = auxNP;
  
@@ -417,7 +459,7 @@
      }
  };
  
- function loadObjects(objList) {
+ function loadObjects(objList, submarino=true) {
      for (let obj of objList ) {
          var model = mat4();  // identidade
          
@@ -442,11 +484,20 @@
          let modelView = mult(gCtx.view, model);
          let modelViewInv = inverse(modelView);
          let modelViewInvTrans = transpose(modelViewInv);
-     
-         gl.uniformMatrix4fv(gShader.uModel, false, flatten(model));
-         gl.uniformMatrix4fv(gShader.uInverseTranspose, false, flatten(modelViewInvTrans));
-    
-         gl.uniform1f(gShader.uAlfa, obj.alfa);
+
+         if(submarino) {
+            gl.uniformMatrix4fv(gShaderSub.uModel, false, flatten(model));
+            gl.uniformMatrix4fv(gShaderSub.uInverseTranspose, false, flatten(modelViewInvTrans));
+       
+            gl.uniform1f(gShaderSub.uAlfa, obj.alfa);
+         }
+         else {    
+            gl.uniformMatrix4fv(gShader.uModel, false, flatten(model));
+            gl.uniformMatrix4fv(gShader.uInverseTranspose, false, flatten(modelViewInvTrans));
+       
+            gl.uniform1f(gShader.uAlfa, obj.alfa);
+         }
+
          gl.drawArrays(gl.TRIANGLES, obj.bufPos, obj.np);
      
      }
@@ -491,6 +542,7 @@
      vView = -(pos.xyz);
  
      vCor = aCor;
+     //vTexCoord = aTexCoord; 
  
      vProfundidadeNevoa = -(pos.z);
  }
@@ -507,8 +559,6 @@
  out vec4 corSaida;
  
  // nevoa
- //in vec4 vCorFragmento;
- //uniform float uPesoNevoa;
  in float vProfundidadeNevoa;
  uniform vec4 uCorNevoa;
  uniform float uNevoaNear;
@@ -542,10 +592,7 @@
  
      vec4 auxSaida = difusao + especular + ambiente; 
      auxSaida.a = 1.0;
- 
-     //corSaida = difusao + especular + ambiente; 
-     //corSaida.a = 1.0;
- 
+  
      float pesoNevoa = 0.0;
  
      if( vProfundidadeNevoa >= uNevoaFar ) {

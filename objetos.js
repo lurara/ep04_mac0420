@@ -196,15 +196,16 @@ function Esfera(cor = ESFERA_COR, alfa = ESFERA_ALFA) {
         this.bPos = [];  // vetor de posições
         this.bNorm = [];  // vetor de normais
         this.bCor = [];  // vetor de cores
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[1], v[2]);
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[5], v[1]);
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[2], v[4]);
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[4], v[5]);
+        this.bTex = [];  // vetor de textura
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[1], v[2], this.bTex);
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[5], v[1], this.bTex);
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[2], v[4], this.bTex);
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[0], v[4], v[5], this.bTex);
 
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[2], v[1]);
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[1], v[5]);
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[4], v[2]);
-        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[5], v[4]);
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[2], v[1], this.bTex);
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[1], v[5], this.bTex);
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[4], v[2], this.bTex);
+        dividaTriangulo(ndivs, this.bPos, this.bNorm, v[3], v[5], v[4], this.bTex);
 
         this.np = this.bPos.length;
         let c = this.cor;
@@ -217,11 +218,28 @@ function Esfera(cor = ESFERA_COR, alfa = ESFERA_ALFA) {
             this.bCor.push(c);
             this.bCor.push(c);
         };
+        //this.bCor = this.bTex;
         console.log("Esfera num vertices: ", this.np);
     };
 };
 
-function dividaTriangulo(ndivs, pos, nor, a, b, c) {
+function unwrapMapa(x, y, z) {
+    var phi = Math.acos(z);
+    var theta = Math.atan2(y, x);
+    var s, t;
+  
+    // // coordenadas theta de [0, 2pi]
+    if(theta < 0) {
+      theta += 2*Math.PI;
+    }
+  
+    s = theta / (2 * Math.PI);
+    t = 1 - (phi /Math.PI);
+  
+    return [s, t];
+}
+
+function dividaTriangulo(ndivs, pos, nor, a, b, c, tex) {
     // Cada nível quebra um triângulo em 4 subtriângulos
     // a, b, c em ordem mão direita
     //    c
@@ -236,10 +254,10 @@ function dividaTriangulo(ndivs, pos, nor, a, b, c) {
         bc = normalize(bc);
         ca = normalize(ca);
 
-        dividaTriangulo(ndivs-1, pos, nor,  a, ab, ca);
-        dividaTriangulo(ndivs-1, pos, nor,  b, bc, ab);
-        dividaTriangulo(ndivs-1, pos, nor,  c, ca, bc);
-        dividaTriangulo(ndivs-1, pos, nor, ab, bc, ca);
+        dividaTriangulo(ndivs-1, pos, nor,  a, ab, ca, tex);
+        dividaTriangulo(ndivs-1, pos, nor,  b, bc, ab, tex);
+        dividaTriangulo(ndivs-1, pos, nor,  c, ca, bc, tex);
+        dividaTriangulo(ndivs-1, pos, nor, ab, bc, ca, tex);
     }
     else {
         let t1 = subtract(b, a);
@@ -248,9 +266,14 @@ function dividaTriangulo(ndivs, pos, nor, a, b, c) {
 
         pos.push(a);
         nor.push(normal);
+        tex.push(unwrapMapa(a[0], a[1], a[2]));
+
         pos.push(b);
         nor.push(normal);
+        tex.push(unwrapMapa(b[0], b[1], b[2]));
+
         pos.push(c);
         nor.push(normal);    
+        tex.push(unwrapMapa(c[0], c[1], c[2]));
     };
 };
